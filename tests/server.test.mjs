@@ -146,3 +146,32 @@ test('rate limits: per-client window, daily cap, and 429 from the API', async ()
     assert.ok(Number(limited.headers.get('retry-after')) > 0);
   } finally { server.close(); }
 });
+
+test('OpenAI adapter: forced function call, bearer key in header, redacted question only', async () => {
+  const { createOpenAIProvider } = await import('../server/providers/openai.mjs');
+  const calls = [];
+  const fetchImpl = async (url, init) => {
+    const body = JSON.parse(init.body);
+    calls.push({ url, init, body });
+    const name = body.tool_choice.function.name;
+    const args = name === 'submit_plan'
+      ? { intent: 'policy_evidence', domain: 'tax', jurisdiction: 'CA', needsCurrentStatus: true, searchTerms: ['prop 13'] }
+      : { facts: [{ claim: 'The maximum ad valorem tax on real property shall not exceed 1 percent of its full cash value.', evidenceIds: ['ca-const-xiiia-1a'] }], scenario: null, uncertainties: ['Local voter-approved rates add to the 1%.'], coverage: 'partial' };
+    return new Response(JSON.stringify({ choices: [{ message: { tool_calls: [{ type: 'function', function: { name, arguments: JSON.stringify(args) } }] } }], usage: { prompt_tokens: 20, completion_tokens: 7 } }));
+  };
+  const provider = createOpenAIProvider({ apiKey: 'sk-openai-test', model: 'test-model', fetchImpl });
+  const r = await ask('My home cost $900,000. What does Prop 13 say about the tax rate in California?', { provider, corpus, today });
+  assert.equal(r.abstained, false);
+  assert.equal(r.meta.provider, 'openai');
+  for (const c of calls) {
+    assert.equal(c.url, 'https://api.openai.com/v1/chat/completions');
+    assert.equal(c.init.headers.authorization, 'Bearer sk-openai-test');
+    assert.equal(c.body.tool_choice.type, 'function');
+    assert.ok(!JSON.stringify(c.body).includes('900,000'));
+  }
+  assert.deepEqual(r.meta.composeUsage, { input_tokens: 20, output_tokens: 7 });
+  await assert.rejects(createOpenAIProvider({ apiKey: 'k', model: 'm', fetchImpl: async () => new Response(JSON.stringify({ choices: [{ message: { tool_calls: [{ function: { name: 'submit_plan', arguments: '{bad' } }] } }] })) }).plan('q'), /invalid tool arguments/);
+  assert.throws(() => createOpenAIProvider({ apiKey: 'k', model: '' }), /CIVICLENS_MODEL/);
+  assert.equal(providerFromEnv({ OPENAI_API_KEY: 'k', CIVICLENS_MODEL: 'm' }).name, 'openai');
+  assert.equal(providerFromEnv({ OPENAI_API_KEY: 'k', ANTHROPIC_API_KEY: 'k2' }).name, 'anthropic');
+});

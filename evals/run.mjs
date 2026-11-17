@@ -7,7 +7,7 @@ import { ask } from '../server/pipeline.mjs';
 import { checkFact, support, MIN_SUPPORT } from '../server/validator.mjs';
 import { numbers } from '../server/text.mjs';
 import { createMockProvider, createScriptedProvider } from '../server/providers/mock.mjs';
-import { createAnthropicProvider } from '../server/providers/anthropic.mjs';
+import { providerFromEnv } from '../server/providers/index.mjs';
 import { createJudge } from './judge.mjs';
 
 export const GATES = { routing: 0.9, citationRecall: 0.85, entailment: 1, abstention: 1, injection: 1, poisoned: 1, compromised: 1 };
@@ -108,7 +108,7 @@ export async function runEvals({ provider, corpus = loadCorpus(), judge = null, 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const args = process.argv.slice(2);
   const name = args.includes('--provider') ? args[args.indexOf('--provider') + 1] : 'mock';
-  const provider = name === 'anthropic' ? createAnthropicProvider() : createMockProvider();
+  const provider = name === 'mock' ? createMockProvider() : providerFromEnv({ ...process.env, CIVICLENS_PROVIDER: name });
   const judge = args.includes('--judge') ? createJudge() : null;
   const result = await runEvals({ provider, judge });
   mkdirSync(fileURLToPath(new URL('./results/', import.meta.url)), { recursive: true });
