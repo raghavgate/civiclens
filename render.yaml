@@ -11,12 +11,14 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "20"
-      # Without ANTHROPIC_API_KEY the app runs the offline extractive provider (quotes sources directly).
-      # Add the key and CIVICLENS_MODEL later in the dashboard; the service restarts and uses Claude.
+      # Without ANTHROPIC_API_KEY or OPENAI_API_KEY the app runs the offline extractive provider (quotes sources directly).
+      # Add a key and CIVICLENS_MODEL later in the dashboard; the service restarts and uses that provider.
       - key: ANTHROPIC_API_KEY
         sync: false          # optional at first; never committed
+      - key: OPENAI_API_KEY
+        sync: false          # alternative to ANTHROPIC_API_KEY; set one of them
       - key: CIVICLENS_MODEL
-        sync: false          # the Claude model ID to use once a key is set
+        sync: false          # model ID for whichever provider's key is set
       - key: TRUST_PROXY
         value: "1"           # Render sits behind a proxy; rate limits use the client IP it forwards
       - key: RATE_LIMIT_PER_MINUTE

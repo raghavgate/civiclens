@@ -6,18 +6,19 @@ Domains: **housing** (rent cap, rent and mortgage budgets), **tax** (Proposition
 
 ```
 npm start            # server + UI on http://localhost:4173 (mock provider unless ANTHROPIC_API_KEY is set)
-npm test             # 52 tests, including the offline eval suite and its gates
+npm test             # 53 tests, including the offline eval suite and its gates
 npm run eval         # offline evals → evals/results/mock-<date>.json
 npm run eval:live    # Anthropic provider + model-graded entailment judge (needs ANTHROPIC_API_KEY)
+npm run eval:openai  # OpenAI provider (needs OPENAI_API_KEY and CIVICLENS_MODEL)
 ```
 
-Node 18+, no dependencies. Environment: `ANTHROPIC_API_KEY`, `CIVICLENS_PROVIDER=anthropic|mock`, `CIVICLENS_MODEL`, `CIVICLENS_JUDGE_MODEL`, `PORT`, `TRUST_PROXY`, `RATE_LIMIT_PER_MINUTE`, `DAILY_QUESTION_CAP`.
+Node 18+, no dependencies. Environment: `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`, `CIVICLENS_PROVIDER=anthropic|openai|mock`, `CIVICLENS_MODEL`, `CIVICLENS_JUDGE_MODEL`, `PORT`, `TRUST_PROXY`, `RATE_LIMIT_PER_MINUTE`, `DAILY_QUESTION_CAP`.
 
 ## Deploy
 
 CivicLens needs a Node server (the `/api/ask` endpoint), so static hosts can't run the full app.
 
-**Render (free tier):** in dashboard.render.com choose **New → Blueprint** and pick this repo. `render.yaml` sets everything up. When prompted you can leave `ANTHROPIC_API_KEY` and `CIVICLENS_MODEL` blank: the site then runs the offline provider, which quotes sources word for word. Add both later under Environment and the service restarts using Claude. The site is served at `https://civiclens-<suffix>.onrender.com`; add a custom domain under Settings. Free instances sleep when idle, so the first request after a pause takes a few seconds.
+**Render (free tier):** in dashboard.render.com choose **New → Blueprint** and pick this repo. `render.yaml` sets everything up. When prompted you can leave the keys blank: the site then runs the offline provider, which quotes sources word for word. Later, under Environment, set `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` plus `CIVICLENS_MODEL`, and the service restarts using that provider. The site is served at `https://civiclens-<suffix>.onrender.com`; add a custom domain under Settings. Free instances sleep when idle, so the first request after a pause takes a few seconds.
 
 **Any container host (Railway, Fly.io):** use the `Dockerfile`, and set `ANTHROPIC_API_KEY` and `CIVICLENS_MODEL` (without a key it runs the offline provider).
 
@@ -40,7 +41,7 @@ browser ──{question}──▶ /api/ask
 browser ◀── facts + evidence records + uncertainties; calculator inputs never leave the page
 ```
 
-**Provider adapters.** `server/providers/anthropic.mjs` (Messages API, forced tool use, key read server-side only) and `server/providers/mock.mjs` (deterministic extractive provider for tests and offline use). Both implement `plan()` and `compose()`; the pipeline does not know which one it has.
+**Provider adapters.** `server/providers/anthropic.mjs` (Messages API, forced tool use), `server/providers/openai.mjs` (Chat Completions, forced function calling), both reading keys server-side only, and `server/providers/mock.mjs` (deterministic extractive provider for tests and offline use). Both implement `plan()` and `compose()`; the pipeline does not know which one it has.
 
 **Evidence records** (`corpus/ca/records.json`, 11 records) carry `id`, canonical `url` on an allowlisted host, exact `passage`, `jurisdiction`, `publishedAt`, `retrievedAt`, `effectiveDate`, `expiresAt`, and `status` (`in_force`, `chaptered`, `introduced`, `guidance`, …). An introduced bill can only support "would" statements; an expired record cannot support a current-rule claim. Loading fails on any record that breaks these rules.
 
