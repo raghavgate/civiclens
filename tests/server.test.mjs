@@ -122,3 +122,27 @@ test('HTTP server: /api/ask contract, static files, and traversal guard', async 
     assert.equal((await fetch(`${base}/..%2fpackage.json`)).status, 404);
   } finally { server.close(); }
 });
+
+test('rate limits: per-client window, daily cap, and 429 from the API', async () => {
+  const { createLimiter, clientId } = await import('../server/limits.mjs');
+  let t = 0;
+  const lim = createLimiter({ perMinute: 2, perDay: 3, now: () => t });
+  assert.ok(lim.check('a').ok && lim.check('a').ok);
+  assert.equal(lim.check('a').error, 'rate_limited');
+  t = 61000;
+  assert.ok(lim.check('b').ok);
+  assert.equal(lim.check('a').error, 'daily_limit_reached');
+  const req = { headers: { 'x-forwarded-for': '9.9.9.9, 10.0.0.1' }, socket: { remoteAddress: '10.0.0.1' } };
+  assert.equal(clientId(req, true), '9.9.9.9');
+  assert.equal(clientId(req, false), '10.0.0.1');
+
+  const server = createApp({ provider: mock, corpus, limiter: createLimiter({ perMinute: 1, perDay: 100 }) }).listen(0);
+  const base = `http://127.0.0.1:${server.address().port}`;
+  try {
+    const post = () => fetch(`${base}/api/ask`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ question: 'rent cap in California?' }) });
+    assert.equal((await post()).status, 200);
+    const limited = await post();
+    assert.equal(limited.status, 429);
+    assert.ok(Number(limited.headers.get('retry-after')) > 0);
+  } finally { server.close(); }
+});

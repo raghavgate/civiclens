@@ -6,6 +6,7 @@ import { loadCorpus } from './corpus.mjs';
 import { ask } from './pipeline.mjs';
 import { parseAskBody, RequestError } from './privacy.mjs';
 import { providerFromEnv } from './providers/index.mjs';
+import { createLimiter, clientId } from './limits.mjs';
 
 const DIST = fileURLToPath(new URL('../dist/', import.meta.url));
 const TYPES = { '.html': 'text/html; charset=utf-8', '.mjs': 'text/javascript', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml' };
@@ -16,7 +17,7 @@ const SECURITY_HEADERS = {
 };
 const MAX_BODY = 4096;
 
-export function createApp({ provider, corpus, log = () => {} }) {
+export function createApp({ provider, corpus, log = () => {}, limiter = createLimiter(), trustProxy = false }) {
   return createServer(async (req, res) => {
     const send = (status, body, type = 'application/json') => {
       res.writeHead(status, { 'content-type': type, 'cache-control': 'no-store', ...SECURITY_HEADERS });
@@ -27,6 +28,8 @@ export function createApp({ provider, corpus, log = () => {} }) {
       if (url.pathname === '/api/health') return send(200, { ok: true, provider: provider.name, corpusVersion: corpus.version });
       if (url.pathname === '/api/ask') {
         if (req.method !== 'POST') return send(405, { error: 'method_not_allowed' });
+        const allowed = limiter.check(clientId(req, trustProxy));
+        if (!allowed.ok) { res.setHeader('retry-after', String(allowed.retryAfter)); return send(429, { error: allowed.error }); }
         if (!String(req.headers['content-type']).startsWith('application/json')) return send(415, { error: 'json_required' });
         let size = 0; const chunks = [];
         for await (const c of req) { size += c.length; if (size > MAX_BODY) return send(413, { error: 'body_too_large' }); chunks.push(c); }
@@ -56,6 +59,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const provider = providerFromEnv();
   const corpus = loadCorpus();
   const port = Number(process.env.PORT ?? 4173);
-  createApp({ provider, corpus, log: e => console.log(JSON.stringify(e)) })
-    .listen(port, () => console.log(`CivicLens on http://localhost:${port} (provider: ${provider.name}, corpus: ${corpus.version})`));
+  const limiter = createLimiter({ perMinute: Number(process.env.RATE_LIMIT_PER_MINUTE ?? 10), perDay: Number(process.env.DAILY_QUESTION_CAP ?? 500) });
+  createApp({ provider, corpus, limiter, trustProxy: process.env.TRUST_PROXY === '1', log: e => console.log(JSON.stringify(e)) })
+    .listen(port, '0.0.0.0', () => console.log(`CivicLens on port ${port} (provider: ${provider.name}, corpus: ${corpus.version})`));
 }

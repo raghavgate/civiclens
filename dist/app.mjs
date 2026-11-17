@@ -40,6 +40,8 @@ const ABSTAIN={
   no_valid_facts:'A draft answer was produced, but none of its statements were supported by the cited sources, so it was withheld.',
   no_facts:'The sources retrieved did not answer this question.',
   model_error:'The answer service did not respond. Nothing was guessed in its place.',
+  rate_limited:'You are asking faster than this demo allows. Wait a minute and try again.',
+  daily_limit_reached:'This demo has reached its daily question limit. The calculators below still work.',
   malformed_answer:'The answer did not pass validation and was withheld.',
   missing_uncertainties:'The answer did not state its limitations, so it was withheld.',
   malformed_coverage:'The answer did not pass validation and was withheld.',
@@ -49,6 +51,7 @@ const safeUrl=u=>/^https:\/\//.test(u)?u:'#'
 
 async function fetchAnswer(question){
   const res=await fetch('api/ask',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({question})})
+  if(res.status===429){const e=(await res.json().catch(()=>({}))).error;return {limited:true,intent:routeQuestion(question).intent,domain:routeQuestion(question).domain,abstained:true,reason:e,facts:[],evidence:[],uncertainties:['Too many questions right now. Try again shortly.'],coverage:'none'}}
   if(!res.ok)throw new Error('api '+res.status)
   return res.json()
 }
