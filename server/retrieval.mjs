@@ -1,4 +1,4 @@
-import { tokens } from './text.mjs';
+import { tokens, INSTRUCTION_LIKE } from './text.mjs';
 import { isExpired } from './corpus.mjs';
 
 // Lexical retrieval (BM25) over the allowlisted corpus, filtered by domain and jurisdiction.
@@ -10,7 +10,8 @@ export function retrieve(corpus, { query, domain, jurisdiction = 'CA', k = 4, mi
   const df = new Map();
   for (const { d } of all) for (const t of new Set(d)) df.set(t, (df.get(t) ?? 0) + 1);
   const N = all.length;
-  const scoped = all.filter(({ r }) => (!domain || r.domain === domain) && r.jurisdiction === jurisdiction);
+  // Passages that address the model are quarantined: never retrieved, never shown, never citable.
+  const scoped = all.filter(({ r }) => (!domain || r.domain === domain) && r.jurisdiction === jurisdiction && !INSTRUCTION_LIKE.test(r.passage));
   if (!scoped.length) return [];
   const pool = scoped.map(x => x.r), docs = scoped.map(x => x.d);
   const q = [...new Set(tokens(query))];

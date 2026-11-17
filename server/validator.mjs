@@ -1,4 +1,4 @@
-import { tokens, numbers } from './text.mjs';
+import { tokens, numbers, INSTRUCTION_LIKE } from './text.mjs';
 import { LAW_STATUSES } from './corpus.mjs';
 import { MODEL_VERSION, SCENARIO_MODELS } from '../dist/model.mjs';
 
@@ -9,7 +9,6 @@ const ENACTMENT_CLAIM = /\b(is (now |currently )?(state )?law|enacted|signed int
 const RULE_CLAIM = /\b(in effect|in force|requires?|prohibits?|caps?|capped|limits?|imposes?|imposed|must|shall)\b/i;
 const RULE_STATUSES = new Set([...LAW_STATUSES, 'guidance']);
 const FORECAST = /\b(will|would|could) (save|cost|lower|raise|reduce|increase|cut|drop)\b[^.]*\d/i;
-const INSTRUCTION_LIKE = /(ignore (all |any )?(previous|prior|above) (instructions|rules)|system prompt|you are now|disregard the|as an ai\b)/i;
 export const MIN_SUPPORT = 0.6;
 
 // Fraction of the claim's content words found in the cited text. A cheap, deterministic entailment proxy;

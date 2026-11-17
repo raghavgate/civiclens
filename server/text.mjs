@@ -24,3 +24,7 @@ export function numbers(text) {
     .replace(/(\d),(\d{3})/g, '$1$2');
   return new Set((t.match(/\d+(?:\.\d+)?/g) ?? []).map(n => String(Number(n))));
 }
+
+// Text that addresses the model rather than describing the world. Used to quarantine retrieved passages
+// and to reject claims that relay injected instructions.
+export const INSTRUCTION_LIKE = /(ignore (all |any )?(previous|prior|above|earlier) (instructions|rules|directions)|system (note|prompt|message|instruction)|note to the (assistant|model|ai)|you are now|developer mode|disregard (the|all|any|previous)|as an ai\b)/i;
