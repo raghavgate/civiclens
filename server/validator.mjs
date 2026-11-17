@@ -56,6 +56,8 @@ export function abstention(reason, plan, extra = {}) {
     intent: plan?.intent ?? 'unsupported',
     domain: plan?.domain ?? null,
     facts: [],
+    evidence: [],
+    rejected: [],
     scenario: SCENARIO_MODELS[plan?.intent] ? { modelVersion: MODEL_VERSION, model: SCENARIO_MODELS[plan.intent], assumptions: [] } : null,
     uncertainties: ['No source-backed answer was produced for this question.'],
     coverage: 'none',
