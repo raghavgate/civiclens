@@ -1,0 +1,25 @@
+# Render Blueprint: dashboard.render.com → New → Blueprint → pick this repo.
+services:
+  - type: web
+    name: civiclens
+    runtime: node
+    plan: free
+    buildCommand: npm install --omit=dev
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: CIVICLENS_PROVIDER
+        value: anthropic
+      - key: ANTHROPIC_API_KEY
+        sync: false          # entered in the Render dashboard, never committed
+      - key: CIVICLENS_MODEL
+        sync: false          # the Claude model ID to use
+      - key: TRUST_PROXY
+        value: "1"           # Render sits behind a proxy; rate limits use the client IP it forwards
+      - key: RATE_LIMIT_PER_MINUTE
+        value: "10"
+      - key: DAILY_QUESTION_CAP
+        value: "500"

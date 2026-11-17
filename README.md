@@ -6,12 +6,22 @@ Domains: **housing** (rent cap, rent and mortgage budgets), **tax** (Proposition
 
 ```
 npm start            # server + UI on http://localhost:4173 (mock provider unless ANTHROPIC_API_KEY is set)
-npm test             # 51 tests, including the offline eval suite and its gates
+npm test             # 52 tests, including the offline eval suite and its gates
 npm run eval         # offline evals → evals/results/mock-<date>.json
 npm run eval:live    # Anthropic provider + model-graded entailment judge (needs ANTHROPIC_API_KEY)
 ```
 
-Node 18+, no dependencies. Environment: `ANTHROPIC_API_KEY`, `CIVICLENS_PROVIDER=anthropic|mock`, `CIVICLENS_MODEL`, `CIVICLENS_JUDGE_MODEL`, `PORT`.
+Node 18+, no dependencies. Environment: `ANTHROPIC_API_KEY`, `CIVICLENS_PROVIDER=anthropic|mock`, `CIVICLENS_MODEL`, `CIVICLENS_JUDGE_MODEL`, `PORT`, `TRUST_PROXY`, `RATE_LIMIT_PER_MINUTE`, `DAILY_QUESTION_CAP`.
+
+## Deploy
+
+CivicLens needs a Node server (the `/api/ask` endpoint), so static hosts can't run the full app.
+
+**Render (free tier):** in dashboard.render.com choose **New → Blueprint** and pick this repo. `render.yaml` sets everything up. When prompted, enter `ANTHROPIC_API_KEY` and `CIVICLENS_MODEL`. The site is served at `https://civiclens-<suffix>.onrender.com`; add a custom domain under Settings. Free instances sleep when idle, so the first request after a pause takes a few seconds.
+
+**Any container host (Railway, Fly.io):** use the `Dockerfile`, and set `ANTHROPIC_API_KEY`, `CIVICLENS_PROVIDER=anthropic` and `CIVICLENS_MODEL`.
+
+**Abuse limits:** a public deployment spends your API key, so `/api/ask` is limited to `RATE_LIMIT_PER_MINUTE` questions per minute per client (default 10) and `DAILY_QUESTION_CAP` questions per day across everyone (default 500). Limits are kept in memory per instance. Also set a monthly spend limit in the Anthropic console.
 
 ## How a question is answered
 
@@ -61,5 +71,5 @@ The API accepts exactly one field, `question` (≤ 500 chars); any other field (
 - Sources: some canonical pages (leginfo) block automated retrieval, so passages were transcribed from the mirrors recorded in each record's `retrievedVia`. Re-verify against the canonical URL before relying on them.
 - Coverage is 11 records. Questions outside them abstain rather than guess. Local ordinances, exemptions, and eligibility are not modeled.
 - The lexical entailment check is a conservative proxy; the live judge is the stronger check.
-- Static hosting (`.openai/hosting.json`, `dist/` only) has no server, so the page falls back to keyword routing and shows no sourced statements.
+- Serving `dist/` alone on a static host gives no server, so the page falls back to keyword routing and shows no sourced statements.
 - Not legal, tax, or financial advice.
