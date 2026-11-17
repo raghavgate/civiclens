@@ -1,1 +1,17 @@
-{"name":"civiclens","version":"0.1.0","private":true,"type":"module","scripts":{"test":"node --test tests/*.test.mjs","dev":"python3 -m http.server 4173 --directory dist"}}
+{
+  "name": "civiclens",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server/index.mjs",
+    "dev": "node server/index.mjs",
+    "static": "python3 -m http.server 4173 --directory dist",
+    "test": "node --test tests/*.test.mjs",
+    "eval": "node evals/run.mjs",
+    "eval:live": "node evals/run.mjs --provider anthropic --judge"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

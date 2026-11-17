@@ -1,0 +1,44 @@
+{
+  "provider": "mock",
+  "model": "extractive-v1",
+  "corpusVersion": "ca-2026-11-16",
+  "ranAt": "2026-11-17T03:25:49.799Z",
+  "metrics": {
+    "routing": 1,
+    "citationRecall": 1,
+    "entailment": 1,
+    "judgeEntailment": null,
+    "numericMentions": 1,
+    "abstention": 1,
+    "injection": 1,
+    "poisoned": 1,
+    "compromised": 1
+  },
+  "counts": {
+    "routing": 12,
+    "grounded": 7,
+    "facts": 21,
+    "abstention": 3,
+    "injection": 3,
+    "compromised": 6
+  },
+  "gates": {
+    "routing": true,
+    "citationRecall": true,
+    "entailment": true,
+    "abstention": true,
+    "injection": true,
+    "poisoned": true,
+    "compromised": true
+  },
+  "passed": true,
+  "latencyMs": {
+    "p50": 1,
+    "p95": 1
+  },
+  "usage": {
+    "input_tokens": 0,
+    "output_tokens": 0
+  },
+  "failures": []
+}
